@@ -1,0 +1,51 @@
+<html>
+<head>
+
+</head>
+<body>
+
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  var canvas = document.createElement('canvas'),
+      context = canvas.getContext('2d');
+
+  canvas.width = 1024;
+  canvas.height = 1024;
+  document.body.appendChild(canvas);
+
+  function render(data) {
+    //window.requestAnimationFrame();
+
+    context.fillStyle = '#fff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    context.beginPath();
+
+    for (var i = 0; i < data.length; i += 1) {
+        var vertices = data[i];
+
+        context.moveTo(vertices[0].x, vertices[0].y);
+        for (var j = 1; j < vertices.length; j += 1) {
+            context.lineTo(vertices[j].x, vertices[j].y);
+        }
+
+        context.lineTo(vertices[0].x, vertices[0].y);
+    }
+
+    context.lineWidth = 1;
+    context.strokeStyle = '#999';
+    context.stroke();
+  }
+
+  var socket = io('http://localhost:8080');
+  socket.emit('next', { });
+  socket.on('message', function (data) {
+	render(JSON.parse(data).world);
+	socket.emit('next', { });
+  });
+
+</script>
+
+</body>
+</html>
