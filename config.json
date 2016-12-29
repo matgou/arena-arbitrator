@@ -1,0 +1,13 @@
+{
+  "players" : [
+    {
+      "name": "player1",
+      "cmd": "java -cp . Bot",
+      "cwd": "D:\\mgoulin\\workspace\\arena-arbitrator\\exemple\\bot_java"
+    },{
+      "name": "player2",
+      "cmd": "java -cp . Bot",
+      "cwd": "D:\\mgoulin\\workspace\\arena-arbitrator\\exemple\\bot_java"
+    }
+  ]
+}

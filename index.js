@@ -2,15 +2,19 @@
 // Generic configuration
 // ******************************************************************
 const PORT=8080; //Lets define a port we want to listen to
-const NB_PLAYER=2;
-const NB_BALL=NB_PLAYER + 1;
 const WORLD_WIDTH=1024;
 const WORLD_HEIGHT=1024;
+var configuration = require('./config.json')
+
+const NB_PLAYER=configuration.players.length;
+const NB_BALL=NB_PLAYER + 1;
 
 // bot cmd
 var cmd_player = Array();
+var cwd_player = Array();
 for(var i = 0; i < NB_PLAYER; i +=1) {
-  cmd_player.push("sh exemple/bot1.sh");
+  cmd_player.push(configuration.players[i].cmd);
+  cwd_player.push(configuration.players[i].cwd);
 }
 // ******************************************************************
 
@@ -120,7 +124,18 @@ for(var i = 0; i < NB_PLAYER; i += 1) {
   console.log("Player" + i + ": x=" + position.x + ", y=" + position.y);
 
   players.push(player);
-  var proc = cp.exec(cmd_player[i]);
+  var proc = cp.exec(cmd_player[i],{ cwd: cwd_player[i] }, function(error, stdout, stderr) {
+    if (error) {
+      console.error(`exec ${i} error: ${error}`);
+      process.exit(1);
+    }
+  }.bind(i));
+  if(proc.connected) {
+    proc.stdin.write(i + "\n");
+  }
+  proc.stderr.on('data', function(data,  p) {
+    console.log("pid STDERR : " + this + " :" + data);
+  }.bind(i));
   proc.stdout.on('data', function(data,  p) {
     str = data.split(" ");
     console.log("pid STDOUT : " + this + " x=" + str[1] + ",y=" + str[2]);
@@ -154,25 +169,24 @@ for(var i = 0; i <= 100; i += 1) {
 	Matter.Events.trigger(engine, 'tick', { timestamp: engine.timing.timestamp });
 	Matter.Engine.update(engine, engine.timing.delta);
 	Matter.Events.trigger(engine, 'afterTick', { timestamp: engine.timing.timestamp });
-  /*Body.setVelocity(player, {
-    x: Common.random(-20, 20),
-    y: Common.random(-20, 20)
-  });*/
+
   // EnvToString
   var environnementStr = "" + (balls.length + players.length) + "\n";
   for (var j = 0; j < balls.length; j +=1) {
     ball = balls[j];
-    environnementStr += "Ball" + j + " " + Math.round(ball.position.x) + " " + Math.round(ball.position.y) + " 0\n";
+    environnementStr += "BALL " + j + " " + Math.round(ball.position.x) + " " + Math.round(ball.position.y) + " 0\n";
   }
   for (var j = 0; j < players.length; j +=1) {
     player = players[j];
-    environnementStr += "Player" + j + " " + Math.round(player.position.x) + " " + Math.round(player.position.y) + " 0\n";
+    environnementStr += "PLAYER " + j + " " + Math.round(player.position.x) + " " + Math.round(player.position.y) + " 0\n";
   }
 
   for (var j = 0; j < players.length; j +=1) {
     player = players[j];
     pid = processArray[j];
-    pid.stdin.write(environnementStr);
+    if(pid.connected) {
+      pid.stdin.write(environnementStr);
+    }
   }
   deasync.loopWhile(function(){
     if(nbResponse < players.length) {
