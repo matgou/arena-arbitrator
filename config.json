@@ -1,13 +1,11 @@
 {
-  "players" : [
-    {
-      "name": "player1",
-      "cmd": "java -cp . Bot",
-      "cwd": "D:\\mgoulin\\workspace\\arena-arbitrator\\exemple\\bot_java"
-    },{
-      "name": "player2",
-      "cmd": "java -cp . Bot",
-      "cwd": "D:\\mgoulin\\workspace\\arena-arbitrator\\exemple\\bot_java"
-    }
-  ]
+	"players": [{
+		"name": "player1",
+		"cmd": "ruby Bot2.rb",
+		"cwd": "exemple"
+	}, {
+		"name": "player2",
+		"cmd": "ruby Bot2.rb",
+		"cwd": "exemple"
+	}]
 }

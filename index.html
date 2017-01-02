@@ -3,7 +3,11 @@
 
 </head>
 <body>
-
+Arena : 
+<a onclick="previus()" href="javascript:void(0);">Previus</a>
+<a onclick="next()" href="javascript:void(0);">Next</a>
+<div id="div_canvas">
+</div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
@@ -12,7 +16,8 @@
 
   canvas.width = 1024;
   canvas.height = 1024;
-  document.body.appendChild(canvas);
+  div = document.getElementById("div_canvas");
+  div.appendChild(canvas);
 
   function render(data) {
     //window.requestAnimationFrame();
@@ -42,10 +47,17 @@
   socket.emit('next', { });
   socket.on('message', function (data) {
 	render(JSON.parse(data).world);
-	socket.emit('next', { });
   });
+  function next() {
+	console.log("Next !");
+	socket.emit('next', { });
+  }
+  function previus() {
+	console.log("previus !");
+	socket.emit('previus', { });
+  }
+
 
 </script>
-
 </body>
 </html>

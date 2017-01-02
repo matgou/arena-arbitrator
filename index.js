@@ -60,6 +60,13 @@ io.on('connection', function(socket) {
 		socket.emit('message', frame[iteration]);
 		//console.log('message', frame[iteration]);
 	});
+	socket.on('previus', function(data) {
+		if(iteration > 0) {
+			iteration -= 1;
+		}
+		socket.emit('message', frame[iteration]);
+		//console.log('message', frame[iteration]);
+	});
 });
 // ******************************************************************
 
@@ -100,6 +107,19 @@ function WorldAsTring () {
 	return string;
 }
 
+function getBallFor(playerId) {
+	ball_return = null
+	player = players[playerId];
+	for(var j = 0; j < balls.length; j +=1) {
+		ball = balls[j];
+		distance = Vector.magnitude(Vector.sub(ball.position, player.position));
+		if(distance < 30) {
+			ball_return = ball
+		}
+	}
+	return ball_return;
+}
+
 //Disable gravity :
 engine.world.gravity.y = 0;
 
@@ -124,6 +144,7 @@ for(var i = 0; i < NB_PLAYER; i += 1) {
   console.log("Player" + i + ": x=" + position.x + ", y=" + position.y);
 
   players.push(player);
+  console.log("Executing : '" + cmd_player[i] + "' in diretory '" + cwd_player[i] + "'");
   var proc = cp.exec(cmd_player[i],{ cwd: cwd_player[i] }, function(error, stdout, stderr) {
     if (error) {
       console.error(`exec ${i} error: ${error}`);
@@ -140,12 +161,39 @@ for(var i = 0; i < NB_PLAYER; i += 1) {
     str = data.split(" ");
     console.log("pid STDOUT : " + this + " x=" + str[1] + ",y=" + str[2]);
     nbResponse += 1;
-    Body.setVelocity(players[this], {
-      x: str[1],
-      y: str[2]
-    });
+	if(str[0] == "MOVE") {
+		dest = Vector.create(str[1], str[2]);
+		direction = Vector.sub(dest, players[this].position);
+		size_direction = Vector.magnitude(direction)
+		velocity = Vector.mult(Vector.div(direction, size_direction), 10);
+		Body.setVelocity(players[this], {
+		  x: velocity.x,
+		  y: velocity.y
+		});
+	} 
+	else if(str[0] == "PUSH") {
+		ball=getBallFor(this);
+		if(ball != null) {
+			dest = Vector.create(str[1], str[2]);
+			direction = Vector.sub(dest, players[this].position);
+			direction = Vector.sub(dest, players[this].position);
+			size_direction = Vector.magnitude(direction)
+			velocity = Vector.mult(Vector.div(direction, size_direction), 80);
+			Body.setVelocity(ball, {
+			  x: velocity.x,
+			  y: velocity.y
+			});
+		} else {
+			console.error(`exec ${i} error: No ball to push`);
+		}
+	} else {
+		console.error(`exec ${i} error: Invalid response`);
+		process.exit(1);
+	}
   }.bind(i));
+  
   processArray.push(proc);
+  proc.stdin.write("" + i + "\n");
 }
 nbResponse = 0;
 World.add(engine.world, players);
@@ -174,19 +222,22 @@ for(var i = 0; i <= 100; i += 1) {
   var environnementStr = "" + (balls.length + players.length) + "\n";
   for (var j = 0; j < balls.length; j +=1) {
     ball = balls[j];
-    environnementStr += "BALL " + j + " " + Math.round(ball.position.x) + " " + Math.round(ball.position.y) + " 0\n";
+	environnementStr += j + " BALL " + " " + Math.round(ball.position.x) + " " + Math.round(ball.position.y) + " 1\n";
   }
   for (var j = 0; j < players.length; j +=1) {
     player = players[j];
-    environnementStr += "PLAYER " + j + " " + Math.round(player.position.x) + " " + Math.round(player.position.y) + " 0\n";
+	if(getBallFor(j) != null) {
+		environnementStr += j + " PLAYER " + " " + Math.round(player.position.x) + " " + Math.round(player.position.y) + " 1\n";
+	} else {
+		environnementStr += j + " PLAYER " + " " + Math.round(player.position.x) + " " + Math.round(player.position.y) + " 0\n";
+	}
   }
+  console.log(environnementStr);
 
   for (var j = 0; j < players.length; j +=1) {
     player = players[j];
     pid = processArray[j];
-    if(pid.connected) {
       pid.stdin.write(environnementStr);
-    }
   }
   deasync.loopWhile(function(){
     if(nbResponse < players.length) {
