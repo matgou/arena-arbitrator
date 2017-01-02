@@ -5,6 +5,8 @@
 <body>
 Arena : 
 <a onclick="previus()" href="javascript:void(0);">Previus</a>
+<a onclick="stop()" href="javascript:void(0);">Stop</a>
+<a onclick="play()" href="javascript:void(0);">Play</a>
 <a onclick="next()" href="javascript:void(0);">Next</a>
 <div id="div_canvas">
 </div>
@@ -13,7 +15,7 @@ Arena :
 <script>
   var canvas = document.createElement('canvas'),
       context = canvas.getContext('2d');
-
+  auto_next = false;
   canvas.width = 1024;
   canvas.height = 1024;
   div = document.getElementById("div_canvas");
@@ -47,7 +49,17 @@ Arena :
   socket.emit('next', { });
   socket.on('message', function (data) {
 	render(JSON.parse(data).world);
+	if(auto_next) {
+		next();
+	}
   });
+  function play() {
+	auto_next=true
+	next();
+  }
+  function stop() {
+	auto_next=false
+  }
   function next() {
 	console.log("Next !");
 	socket.emit('next', { });

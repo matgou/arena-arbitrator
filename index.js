@@ -35,6 +35,7 @@ console.log("Service OK : http://localhost:" + PORT + "/index.html");
 var Engine = Matter.Engine,
     Render = Matter.Render,
     World = Matter.World,
+    Events = Matter.Events,
     Body = Matter.Body,
     Bodies = Matter.Bodies,
     Vector = Matter.Vector,
@@ -130,16 +131,42 @@ var ground_left = Bodies.rectangle(10, WORLD_HEIGHT/2, 10, WORLD_HEIGHT - 10 * 2
 var ground_right = Bodies.rectangle(WORLD_WIDTH - 10, WORLD_HEIGHT/2, 10, WORLD_HEIGHT - 10 * 2, { isStatic: true });
 World.add(engine.world, [ground_up, ground_down, ground_left, ground_right]);
 
+var centerVector = Vector.create(WORLD_WIDTH/2, WORLD_HEIGHT/2);
+
+// create Balls
+var ball1 = Bodies.circle(WORLD_WIDTH/2, WORLD_HEIGHT/2, 5, { density: 1, frictionAir: 0.05});
+ball1.isBall=true;
+ball1.ballIndex = 0;
+var balls = Array();
+balls.push(ball1);
+console.log("Ball0: x=" + WORLD_WIDTH/2 + ", y=" + WORLD_HEIGHT/2);
+vector = Vector.create(WORLD_WIDTH/2 + Common.random(-500, 500), WORLD_HEIGHT/2 + Common.random(-500, 500));
+for(var i = 0; i < (NB_BALL - 1); i += 1) {
+  var position = Vector.rotateAbout(vector, i * 2 * Math.PI / NB_PLAYER, centerVector);
+  ball = Bodies.circle(position.x, position.y, 5, { density: 0.04, frictionAir: 0.05});
+  balls.push(ball);
+  console.log("Ball" + i + ": x=" + position.x + ", y=" + position.y);
+  ball.isBall=true;
+  ball.ballIndex = i +1;
+}
+World.add(engine.world, balls);
+
 // create Players
 var nbResponse = 0;
 var players = Array();
 var processArray = Array();
-var centerVector = Vector.create(WORLD_WIDTH/2, WORLD_HEIGHT/2);
 for(var i = 0; i < NB_PLAYER; i += 1) {
+  
   vector = Vector.create(WORLD_WIDTH - 100, WORLD_HEIGHT/2);
+  vector_goal = Vector.create(WORLD_WIDTH, WORLD_HEIGHT/2);
   var position = Vector.rotateAbout(vector, i * 2 * Math.PI / NB_PLAYER, centerVector);
-
-  var player = Bodies.rectangle(position.x, position.y, 20, 20, { density: 0.04, frictionAir: 0.05});
+  var position_goal = Vector.rotateAbout(vector_goal, i * 2 * Math.PI / NB_PLAYER, centerVector);
+  
+  var player = Bodies.rectangle(position.x, position.y, 20, 20, { density: 1, frictionAir: 0.05});
+  var goalPlayer = Bodies.rectangle(position_goal.x, position_goal.y, 40, 100, { isStatic: true });
+  goalPlayer.isGoal=true;
+  goalPlayer.goalIndex = i
+  World.add(engine.world, [goalPlayer]);
   // var playerB = Bodies.rectangle(1024-50, 1024/2, 20, 20, { density: 0.04, frictionAir: 0.05});
   console.log("Player" + i + ": x=" + position.x + ", y=" + position.y);
 
@@ -178,7 +205,7 @@ for(var i = 0; i < NB_PLAYER; i += 1) {
 			direction = Vector.sub(dest, players[this].position);
 			direction = Vector.sub(dest, players[this].position);
 			size_direction = Vector.magnitude(direction)
-			velocity = Vector.mult(Vector.div(direction, size_direction), 80);
+			velocity = Vector.mult(Vector.div(direction, size_direction), 15);
 			Body.setVelocity(ball, {
 			  x: velocity.x,
 			  y: velocity.y
@@ -199,25 +226,39 @@ nbResponse = 0;
 World.add(engine.world, players);
 
 
-// create Balls
-var ball1 = Bodies.circle(WORLD_WIDTH/2, WORLD_HEIGHT/2, 5, { density: 0.04, frictionAir: 0.05});
-var balls = Array();
-balls.push(ball1);
-console.log("Ball0: x=" + WORLD_WIDTH/2 + ", y=" + WORLD_HEIGHT/2);
-vector = Vector.create(WORLD_WIDTH/2 + Common.random(-500, 500), WORLD_HEIGHT/2 + Common.random(-500, 500));
-for(var i = 0; i < (NB_BALL - 1); i += 1) {
-  var position = Vector.rotateAbout(vector, i * 2 * Math.PI / NB_PLAYER, centerVector);
-  balls.push(Bodies.circle(position.x, position.y, 5, { density: 0.04, frictionAir: 0.05}));
-  console.log("Ball" + i + ": x=" + position.x + ", y=" + position.y);
-}
-World.add(engine.world, balls);
-
-for(var i = 0; i <= 100; i += 1) {
+for(var i = 0; i <= 1000; i += 1) {
   console.log("-------- Iteration " + i + "-------------------");
 	Matter.Events.trigger(engine, 'tick', { timestamp: engine.timing.timestamp });
 	Matter.Engine.update(engine, engine.timing.delta);
 	Matter.Events.trigger(engine, 'afterTick', { timestamp: engine.timing.timestamp });
-
+	Events.on(engine, 'collisionStart', function(event) {
+		var pairs = event.pairs;
+		for (var i = 0; i < pairs.length; i++) {
+			var pair = pairs[i];
+			if(pair.bodyA.isGoal && pair.bodyB.isBall) {
+				if (balls.indexOf(pair.bodyB) != -1) {
+					console.log("Goal ! ");
+					World.remove(engine.world, [pair.bodyB]);
+					balls.splice(pair.bodyB.ballIndex, 1);
+					console.log("Player = " + pair.bodyA.goalIndex);
+					//process.exit(0);
+				}
+			}
+			if(pair.bodyB.isGoal && pair.bodyA.isBall) {
+				if (balls.indexOf(pair.bodyA) != -1) {
+					console.log("Goal ! ");
+					World.remove(engine.world, [pair.bodyA]);
+					balls.splice(pair.bodyA.ballIndex, 1);
+					console.log("Player = " + pair.bodyB.goalIndex);
+					//process.exit(0);
+				}
+			}
+		}
+	});
+  if(balls.length <= 0) {
+	console.log(" End of Game -----------------------");
+	break;
+  }
   // EnvToString
   var environnementStr = "" + (balls.length + players.length) + "\n";
   for (var j = 0; j < balls.length; j +=1) {
