@@ -27,6 +27,7 @@ var io = require('socket.io')(app);
 var fs = require('fs');
 var deasync = require('deasync');
 var cp = require('child_process');
+util = require("util");
 
 app.listen(PORT);
 console.log("Service OK : http://localhost:" + PORT + "/index.html");
@@ -125,10 +126,10 @@ function getBallFor(playerId) {
 engine.world.gravity.y = 0;
 
 // Create world borders
-var ground_up = Bodies.rectangle(WORLD_WIDTH/2, 10, WORLD_WIDTH - 10 * 2, 10, { isStatic: true });
-var ground_down = Bodies.rectangle(WORLD_WIDTH/2, WORLD_HEIGHT - 10, WORLD_WIDTH - 10 * 2, 10, { isStatic: true });
-var ground_left = Bodies.rectangle(10, WORLD_HEIGHT/2, 10, WORLD_HEIGHT - 10 * 2, { isStatic: true });
-var ground_right = Bodies.rectangle(WORLD_WIDTH - 10, WORLD_HEIGHT/2, 10, WORLD_HEIGHT - 10 * 2, { isStatic: true });
+var ground_up = Bodies.rectangle(WORLD_WIDTH/2, 3, WORLD_WIDTH - 3 * 2, 3, { isStatic: true });
+var ground_down = Bodies.rectangle(WORLD_WIDTH/2, WORLD_HEIGHT - 3, WORLD_WIDTH - 3 * 2, 3, { isStatic: true });
+var ground_left = Bodies.rectangle(3, WORLD_HEIGHT/2, 3, WORLD_HEIGHT - 3 * 2, { isStatic: true });
+var ground_right = Bodies.rectangle(WORLD_WIDTH - 3, WORLD_HEIGHT/2, 3, WORLD_HEIGHT - 3 * 2, { isStatic: true });
 World.add(engine.world, [ground_up, ground_down, ground_left, ground_right]);
 
 var centerVector = Vector.create(WORLD_WIDTH/2, WORLD_HEIGHT/2);
@@ -231,11 +232,13 @@ for(var i = 0; i <= 1000; i += 1) {
 	Matter.Events.trigger(engine, 'tick', { timestamp: engine.timing.timestamp });
 	Matter.Engine.update(engine, engine.timing.delta);
 	Matter.Events.trigger(engine, 'afterTick', { timestamp: engine.timing.timestamp });
-	Events.on(engine, 'collisionStart', function(event) {
+	Events.on(engine, 'collisionActive', function(event) {
 		var pairs = event.pairs;
 		for (var i = 0; i < pairs.length; i++) {
 			var pair = pairs[i];
 			if(pair.bodyA.isGoal && pair.bodyB.isBall) {
+				console.log("colision with : " + util.inspect(pair, null, 4))
+				console.log("Goal ! " + pair.bodyA.ballIndex);
 				if (balls.indexOf(pair.bodyB) != -1) {
 					console.log("Goal ! ");
 					World.remove(engine.world, [pair.bodyB]);
@@ -245,8 +248,9 @@ for(var i = 0; i <= 1000; i += 1) {
 				}
 			}
 			if(pair.bodyB.isGoal && pair.bodyA.isBall) {
+				console.log("colision with : " + util.inspect(pair, null, 4))
+				console.log("Goal ! " + pair.bodyA.ballIndex);
 				if (balls.indexOf(pair.bodyA) != -1) {
-					console.log("Goal ! ");
 					World.remove(engine.world, [pair.bodyA]);
 					balls.splice(pair.bodyA.ballIndex, 1);
 					console.log("Player = " + pair.bodyB.goalIndex);

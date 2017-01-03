@@ -50,7 +50,9 @@ Arena :
   socket.on('message', function (data) {
 	render(JSON.parse(data).world);
 	if(auto_next) {
-		next();
+	setTimeout(function(){ 
+next();
+    }, 100);
 	}
   });
   function play() {
