@@ -157,14 +157,14 @@ var nbResponse = 0;
 var players = Array();
 var processArray = Array();
 for(var i = 0; i < NB_PLAYER; i += 1) {
-  
+
   vector = Vector.create(WORLD_WIDTH - 100, WORLD_HEIGHT/2);
-  vector_goal = Vector.create(WORLD_WIDTH, WORLD_HEIGHT/2);
+  vector_goal = Vector.create(WORLD_WIDTH-10, WORLD_HEIGHT/2);
   var position = Vector.rotateAbout(vector, i * 2 * Math.PI / NB_PLAYER, centerVector);
   var position_goal = Vector.rotateAbout(vector_goal, i * 2 * Math.PI / NB_PLAYER, centerVector);
-  
+
   var player = Bodies.rectangle(position.x, position.y, 20, 20, { density: 1, frictionAir: 0.05});
-  var goalPlayer = Bodies.rectangle(position_goal.x, position_goal.y, 40, 100, { isStatic: true });
+  var goalPlayer = Bodies.rectangle(position_goal.x, position_goal.y, 20, 100, { isStatic: true });
   goalPlayer.isGoal=true;
   goalPlayer.goalIndex = i
   World.add(engine.world, [goalPlayer]);
@@ -198,7 +198,7 @@ for(var i = 0; i < NB_PLAYER; i += 1) {
 		  x: velocity.x,
 		  y: velocity.y
 		});
-	} 
+	}
 	else if(str[0] == "PUSH") {
 		ball=getBallFor(this);
 		if(ball != null) {
@@ -219,7 +219,7 @@ for(var i = 0; i < NB_PLAYER; i += 1) {
 		process.exit(1);
 	}
   }.bind(i));
-  
+
   processArray.push(proc);
   proc.stdin.write("" + i + "\n");
 }
@@ -237,7 +237,7 @@ for(var i = 0; i <= 1000; i += 1) {
 		for (var i = 0; i < pairs.length; i++) {
 			var pair = pairs[i];
 			if(pair.bodyA.isGoal && pair.bodyB.isBall) {
-				console.log("colision with : " + util.inspect(pair, null, 4))
+				//console.log("colision with : " + util.inspect(pair, null, 4))
 				console.log("Goal ! " + pair.bodyA.ballIndex);
 				if (balls.indexOf(pair.bodyB) != -1) {
 					console.log("Goal ! ");
@@ -248,7 +248,7 @@ for(var i = 0; i <= 1000; i += 1) {
 				}
 			}
 			if(pair.bodyB.isGoal && pair.bodyA.isBall) {
-				console.log("colision with : " + util.inspect(pair, null, 4))
+				//console.log("colision with : " + util.inspect(pair, null, 4))
 				console.log("Goal ! " + pair.bodyA.ballIndex);
 				if (balls.indexOf(pair.bodyA) != -1) {
 					World.remove(engine.world, [pair.bodyA]);
