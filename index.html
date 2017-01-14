@@ -3,11 +3,13 @@
 
 </head>
 <body>
-Arena : 
+Arena :
 <a onclick="previus()" href="javascript:void(0);">Previus</a>
 <a onclick="stop()" href="javascript:void(0);">Stop</a>
 <a onclick="play()" href="javascript:void(0);">Play</a>
 <a onclick="next()" href="javascript:void(0);">Next</a>
+<img src="img/player.png" id="player_img" style="display:none;"></img>
+<img src="img/ball.png" id="ball_img" style="display:none;"></img>
 <div id="div_canvas">
 </div>
 
@@ -15,6 +17,7 @@ Arena :
 <script>
   var canvas = document.createElement('canvas'),
       context = canvas.getContext('2d');
+  var frameId = 0;
   auto_next = false;
   canvas.width = 1024;
   canvas.height = 1024;
@@ -22,13 +25,46 @@ Arena :
   div.appendChild(canvas);
 
   function render(data) {
-    //window.requestAnimationFrame();
 
     context.fillStyle = '#fff';
-    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillRect(0, 0, data.width, data.height);
 
     context.beginPath();
 
+	// on dessine les bords du terrnin
+	context.fillStyle="#00C9B9";
+	context.fillRect(3,3,data.width - 3, data.height - 3);
+	context.fillStyle="#000000";
+	context.fillRect(0,0,data.width,3);
+	context.fillRect(data.width-3,0,data.width, data.height);
+	context.fillRect(0,data.height-3,data.width, data.height);
+	context.fillRect(0,0,3, data.height);
+
+  context.font="12px Georgia";
+  context.fillText("frame = " + frameId,20,20);
+  context.fillText("Score : ",20,32);
+
+  for(var i=0; i < data.players.length; i += 1) {
+    player = data.players[i];
+    var img1 = document.getElementById('player_img');
+    context.font="12px Georgia";
+    context.fillText(player.name + " = " + data.score[i],20,44 + 12*i);
+    context.fillText(player.name,player.x-10,player.y-30);
+    context.drawImage(img1, player.x-10, player.y-10, 20,20);
+  }
+
+  for(var i=0; i < data.balls.length; i += 1) {
+    ball = data.balls[i];
+    var img1 = document.getElementById('ball_img');
+    context.drawImage(img1, ball.x-8, ball.y-8, 16,16);
+  }
+
+  for(var i=0; i < data.goals.length; i += 1) {
+    goal = data.goals[i];
+  	context.fillStyle="#FFFFFF";
+  	context.fillRect(goal.x-2,goal.y-50,4,100);
+  }
+/*
     for (var i = 0; i < data.length; i += 1) {
         var vertices = data[i];
 
@@ -39,20 +75,21 @@ Arena :
 
         context.lineTo(vertices[0].x, vertices[0].y);
     }
-
+*/
     context.lineWidth = 1;
     context.strokeStyle = '#999';
     context.stroke();
   }
 
   var socket = io('http://localhost:8080');
-  socket.emit('next', { });
+  socket.emit('get', { 'frameId': frameId});
   socket.on('message', function (data) {
+    console.log(data);
 	render(JSON.parse(data).world);
 	if(auto_next) {
-	setTimeout(function(){ 
-next();
-    }, 100);
+		setTimeout(function(){
+			next();
+		}, 100);
 	}
   });
   function play() {
@@ -63,12 +100,14 @@ next();
 	auto_next=false
   }
   function next() {
+	frameId = frameId + 1;
 	console.log("Next !");
-	socket.emit('next', { });
+	socket.emit('get', { 'frameId': frameId});
   }
   function previus() {
+	frameId = framId - 1;
 	console.log("previus !");
-	socket.emit('previus', { });
+	socket.emit('get', { 'frameId': frameId});
   }
 
 

@@ -1,13 +1,11 @@
 // ******************************************************************
 // Generic configuration
 // ******************************************************************
-const PORT=8080; //Lets define a port we want to listen to
-const WORLD_WIDTH=1024;
-const WORLD_HEIGHT=1024;
+
 var configuration = require('./config.json')
 
 const NB_PLAYER=configuration.players.length;
-const NB_BALL=NB_PLAYER + 1;
+const NB_BALL=NB_PLAYER + 30;
 
 // bot cmd
 var cmd_player = Array();
@@ -16,6 +14,9 @@ for(var i = 0; i < NB_PLAYER; i +=1) {
   cmd_player.push(configuration.players[i].cmd);
   cwd_player.push(configuration.players[i].cwd);
 }
+const PORT=configuration.port; //Lets define a port we want to listen to
+const WORLD_WIDTH=configuration.width;
+const WORLD_HEIGHT=configuration.height;
 // ******************************************************************
 
 // ******************************************************************
@@ -25,6 +26,7 @@ var Matter = require('matter-js');
 var app = require('http').createServer(handler)
 var io = require('socket.io')(app);
 var fs = require('fs');
+var url = require('url');
 var deasync = require('deasync');
 var cp = require('child_process');
 util = require("util");
@@ -45,6 +47,8 @@ var Engine = Matter.Engine,
 
 var engine = Engine.create(); // create an engine
 var frame = new Array();
+var goals = new Array();
+var score = new Array();
 // ******************************************************************
 
 // ******************************************************************
@@ -52,19 +56,14 @@ var frame = new Array();
 // ******************************************************************
 io.on('connection', function(socket) {
 	console.log("New socket connection : id=" + socket.id);
-	var iteration = 0;
-	socket.emit('message', frame[iteration]);
+	socket.emit('message', frame[0]);
 	//console.log('message', frame[iteration]);
-	socket.on('next', function(data) {
-		if(iteration < (frame.length - 1)) {
-			iteration += 1;
-		}
-		socket.emit('message', frame[iteration]);
-		//console.log('message', frame[iteration]);
-	});
-	socket.on('previus', function(data) {
-		if(iteration > 0) {
-			iteration -= 1;
+	socket.on('get', function(data) {
+		var iteration = 0;
+		if(data.frameId < (frame.length - 1)) {
+			iteration = data.frameId;
+		} else {
+			iteration = frame.length - 1;
 		}
 		socket.emit('message', frame[iteration]);
 		//console.log('message', frame[iteration]);
@@ -76,6 +75,18 @@ io.on('connection', function(socket) {
 // Serve index.html
 // ******************************************************************
 function handler (req, res) {
+  var request = url.parse(req.url, true);
+  var action = request.pathname;
+  console.log("action GET " + action);
+  if (action == '/img/player.png') {
+     var img = fs.readFileSync('./img/player.png');
+     res.writeHead(200, {'Content-Type': 'image/png' });
+     res.end(img, 'binary');
+  } else if (action == '/img/ball.png') {
+     var img = fs.readFileSync('./img/ball.png');
+     res.writeHead(200, {'Content-Type': 'image/png' });
+     res.end(img, 'binary');
+  } else {
   fs.readFile(__dirname + '/index.html',
   function (err, data) {
     if (err) {
@@ -86,6 +97,7 @@ function handler (req, res) {
     res.writeHead(200);
     res.end(data);
   });
+  }
 }
 // ******************************************************************
 
@@ -93,7 +105,32 @@ function handler (req, res) {
 // World Computation
 // ******************************************************************
 function WorldAsTring () {
-	var bodies = Composite.allBodies(engine.world);
+  var frame = {};
+  var world = {};
+  world.width = WORLD_WIDTH
+  world.height = WORLD_HEIGHT
+  world.players = Array();
+  for(var i = 0; i < players.length; i++) {
+    var player = {};
+    player.x = players[i].position.x;
+    player.y = players[i].position.y;
+    player.name = configuration.players[i].name;
+    world.players.push(player);
+  }
+  world.balls = Array();
+  for(var i = 0; i < balls.length; i++) {
+    var ball = {};
+    ball.x = balls[i].position.x;
+    ball.y = balls[i].position.y;
+    world.balls.push(ball);
+  }
+  world.goals = goals;
+  world.score = score;
+  frame.world = world;
+  console.log(world);
+
+  return JSON.stringify(frame);
+	/*var bodies = Composite.allBodies(engine.world);
 	string = "{\"world\": [";
 	for (var i = 0; i < bodies.length; i += 1) {
         var vertices = bodies[i].vertices;
@@ -106,7 +143,7 @@ function WorldAsTring () {
 		string = string + "]";
 	}
 		string = string + "]}";
-	return string;
+	return string;*/
 }
 
 function getBallFor(playerId) {
@@ -120,6 +157,14 @@ function getBallFor(playerId) {
 		}
 	}
 	return ball_return;
+}
+
+function updateScore(goalIndex) {
+  for(var i=0; i < score.length; i++) {
+    if(i != goalIndex) {
+      score[i] = score[i] + 1;
+    }
+  }
 }
 
 //Disable gravity :
@@ -144,7 +189,7 @@ console.log("Ball0: x=" + WORLD_WIDTH/2 + ", y=" + WORLD_HEIGHT/2);
 vector = Vector.create(WORLD_WIDTH/2 + Common.random(-500, 500), WORLD_HEIGHT/2 + Common.random(-500, 500));
 for(var i = 0; i < (NB_BALL - 1); i += 1) {
   var position = Vector.rotateAbout(vector, i * 2 * Math.PI / NB_PLAYER, centerVector);
-  ball = Bodies.circle(position.x, position.y, 5, { density: 0.04, frictionAir: 0.05});
+  ball = Bodies.circle(position.x, position.y, 16, { density: 0.04, frictionAir: 0.05, inertia: Infinity });
   balls.push(ball);
   console.log("Ball" + i + ": x=" + position.x + ", y=" + position.y);
   ball.isBall=true;
@@ -159,12 +204,14 @@ var processArray = Array();
 for(var i = 0; i < NB_PLAYER; i += 1) {
 
   vector = Vector.create(WORLD_WIDTH - 100, WORLD_HEIGHT/2);
-  vector_goal = Vector.create(WORLD_WIDTH-10, WORLD_HEIGHT/2);
+  vector_goal = Vector.create(WORLD_WIDTH-5, WORLD_HEIGHT/2);
   var position = Vector.rotateAbout(vector, i * 2 * Math.PI / NB_PLAYER, centerVector);
   var position_goal = Vector.rotateAbout(vector_goal, i * 2 * Math.PI / NB_PLAYER, centerVector);
 
   var player = Bodies.rectangle(position.x, position.y, 20, 20, { density: 1, frictionAir: 0.05});
-  var goalPlayer = Bodies.rectangle(position_goal.x, position_goal.y, 20, 100, { isStatic: true });
+  var goalPlayer = Bodies.rectangle(position_goal.x, position_goal.y, 4, 100, { isStatic: true });
+  goals.push({'x': position_goal.x, 'y':position_goal.y});
+  score.push(0);
   goalPlayer.isGoal=true;
   goalPlayer.goalIndex = i
   World.add(engine.world, [goalPlayer]);
@@ -242,8 +289,13 @@ for(var i = 0; i <= 1000; i += 1) {
 				if (balls.indexOf(pair.bodyB) != -1) {
 					console.log("Goal ! ");
 					World.remove(engine.world, [pair.bodyB]);
-					balls.splice(pair.bodyB.ballIndex, 1);
+					for(var j=0; j< balls.length; j++) {
+            if(balls[j].ballIndex == pair.bodyB.ballIndex) {
+              balls.splice(j, 1);
+            }
+          }
 					console.log("Player = " + pair.bodyA.goalIndex);
+          updateScore(pair.bodyA.goalIndex);
 					//process.exit(0);
 				}
 			}
@@ -252,8 +304,13 @@ for(var i = 0; i <= 1000; i += 1) {
 				console.log("Goal ! " + pair.bodyA.ballIndex);
 				if (balls.indexOf(pair.bodyA) != -1) {
 					World.remove(engine.world, [pair.bodyA]);
-					balls.splice(pair.bodyA.ballIndex, 1);
-					console.log("Player = " + pair.bodyB.goalIndex);
+          for(var j=0; j< balls.length; j++) {
+            if(balls[j].ballIndex == pair.bodyA.ballIndex) {
+              balls.splice(j, 1);
+            }
+          }
+          console.log("Player = " + pair.bodyB.goalIndex);
+          updateScore(pair.bodyB.goalIndex);
 					//process.exit(0);
 				}
 			}
