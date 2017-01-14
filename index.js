@@ -42,6 +42,7 @@ var Engine = Matter.Engine,
     Body = Matter.Body,
     Bodies = Matter.Bodies,
     Vector = Matter.Vector,
+    Body = Matter.Body,
 	Composite = Matter.Composite,
 	Common = Matter.Common;
 
@@ -210,7 +211,10 @@ for(var i = 0; i < NB_PLAYER; i += 1) {
 
   var player = Bodies.rectangle(position.x, position.y, 20, 20, { density: 1, frictionAir: 0.05});
   var goalPlayer = Bodies.rectangle(position_goal.x, position_goal.y, 4, 100, { isStatic: true });
-  goals.push({'x': position_goal.x, 'y':position_goal.y});
+  angle = i * 2 * Math.PI / NB_PLAYER;
+  Body.rotate(goalPlayer, angle);
+
+  goals.push({'x': position_goal.x, 'y':position_goal.y, 'angle': angle});
   score.push(0);
   goalPlayer.isGoal=true;
   goalPlayer.goalIndex = i
@@ -321,18 +325,21 @@ for(var i = 0; i <= 1000; i += 1) {
 	break;
   }
   // EnvToString
-  var environnementStr = "" + (balls.length + players.length) + "\n";
+  var environnementStr = "" + (balls.length + players.length + goals.length) + "\n";
   for (var j = 0; j < balls.length; j +=1) {
     ball = balls[j];
 	environnementStr += j + " BALL " + " " + Math.round(ball.position.x) + " " + Math.round(ball.position.y) + " 1\n";
   }
   for (var j = 0; j < players.length; j +=1) {
     player = players[j];
-	if(getBallFor(j) != null) {
-		environnementStr += j + " PLAYER " + " " + Math.round(player.position.x) + " " + Math.round(player.position.y) + " 1\n";
-	} else {
-		environnementStr += j + " PLAYER " + " " + Math.round(player.position.x) + " " + Math.round(player.position.y) + " 0\n";
-	}
+	  if(getBallFor(j) != null) {
+		    environnementStr += j + " PLAYER " + " " + Math.round(player.position.x) + " " + Math.round(player.position.y) + " 1\n";
+	  } else {
+		    environnementStr += j + " PLAYER " + " " + Math.round(player.position.x) + " " + Math.round(player.position.y) + " 0\n";
+	  }
+  }
+  for (var j = 0; j < goals.length; j += 1) {
+    environnementStr += j + " GOAL " + " " + Math.round(goals[j].x) + " " + Math.round(goals[j].y) + " 0\n";
   }
   console.log(environnementStr);
 

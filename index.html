@@ -61,8 +61,12 @@ Arena :
 
   for(var i=0; i < data.goals.length; i += 1) {
     goal = data.goals[i];
-  	context.fillStyle="#FFFFFF";
-  	context.fillRect(goal.x-2,goal.y-50,4,100);
+    context.fillStyle="#FFFFFF";
+    context.save();
+    context.translate(goal.x, goal.y);
+    context.rotate(goal.angle);
+    context.fillRect(-2,-50,4,100);
+    context.restore();
   }
 /*
     for (var i = 0; i < data.length; i += 1) {

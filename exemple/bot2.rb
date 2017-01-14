@@ -49,15 +49,11 @@ logger = Logger.new(fileName = "bot" + Process.pid.to_s + ".log")
 logger.info sprintf("Bot : %d", Process.pid)
 logger.info sprintf("My team = %d", @my_team_id)
 goal=nil
-if(@my_team_id == 0) 
-	goal = Entity.new("GOAL", 10, 1024/2, 0);
-else
-	goal = Entity.new("GOAL", 1024 - 10, 1024/2, 0);
-end
 # game loop
 loop do
     entities = gets.to_i # number of entities still in game
 	balls = []
+  goals = []
 	me = nil
 	opp = nil
     entities.times do
@@ -71,19 +67,24 @@ loop do
         x = x.to_i
         y = y.to_i
         state = state.to_i
-		#$stderr.puts entity_type + " " + x + " " + y + " " state
-		logger.debug sprintf("DEBUG: %d %s %d %d %d\n", entity_id, entity_type, x, y, state)
-		if entity_type == "PLAYER" && entity_id == @my_team_id
-			#printf("DEBUG: me est valorise\n")
-			me = Entity.new(entity_type, x, y, state);
-		elsif entity_type == "PLAYER"
-			#printf("DEBUG: opp est valorise\n")
-			opp = Entity.new(entity_type, x, y, state);
-		elsif entity_type == "BALL"
-			#printf("DEBUG: balls est valorise\n")
-			balls.push(Entity.new(entity_type, x, y, state));
-		end
+    		#$stderr.puts entity_type + " " + x + " " + y + " " state
+    		logger.debug sprintf("DEBUG: %d %s %d %d %d\n", entity_id, entity_type, x, y, state)
+    		if entity_type == "PLAYER" && entity_id == @my_team_id
+    			#printf("DEBUG: me est valorise\n")
+    			me = Entity.new(entity_type, x, y, state);
+    		elsif entity_type == "PLAYER"
+    			#printf("DEBUG: opp est valorise\n")
+    			opp = Entity.new(entity_type, x, y, state);
+    		elsif entity_type == "BALL"
+    			#printf("DEBUG: balls est valorise\n")
+    			balls.push(Entity.new(entity_type, x, y, state));
+        elsif entity_type == "GOAL"
+          if(entity_id != @my_team_id)
+            goals.push(Entity.new(entity_type, x, y, state));
+          end
+        end
     end
+  goal = objetPlusProche(me, goals);
 	closestBall = objetPlusProche(me, balls);
 	if(me.state == 0)
 		printf("MOVE %d %d\n", closestBall.x, closestBall.y)
