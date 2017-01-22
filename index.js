@@ -5,7 +5,7 @@
 var configuration = require('./config.json')
 
 const NB_PLAYER=configuration.players.length;
-const NB_BALL=NB_PLAYER + 30;
+const NB_BALL=configuration.balls;
 
 // bot cmd
 var cmd_player = Array();
@@ -15,8 +15,8 @@ for(var i = 0; i < NB_PLAYER; i +=1) {
   cwd_player.push(configuration.players[i].cwd);
 }
 const PORT=configuration.port; //Lets define a port we want to listen to
-const WORLD_WIDTH=configuration.width;
-const WORLD_HEIGHT=configuration.height;
+const WORLD_WIDTH=1024;
+const WORLD_HEIGHT=1024;
 // ******************************************************************
 
 // ******************************************************************
@@ -321,7 +321,14 @@ for(var i = 0; i <= 1000; i += 1) {
 		}
 	});
   if(balls.length <= 0) {
-	console.log(" End of Game -----------------------");
+	   console.log(" End of Game -----------------------");
+     fs.writeFile("out.json", JSON.stringify(score), function(err) {
+       if(err) {
+        return console.log(err);
+       }
+
+       console.log("The file was saved!");
+     });
 	break;
   }
   // EnvToString

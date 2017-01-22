@@ -1,17 +1,12 @@
 {
 	"port": 8080,
-	"width": 1024,
-	"height": 1024,
+	"balls": 31,
 	"players": [{
 		"name": "player1",
 		"cmd": "ruby Bot2.rb",
 		"cwd": "exemple"
 	}, {
 		"name": "player2",
-		"cmd": "ruby Bot2.rb",
-		"cwd": "exemple"
-	}, {
-		"name": "player3",
 		"cmd": "ruby Bot2.rb",
 		"cwd": "exemple"
 	}]
